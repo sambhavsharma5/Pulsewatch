@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PulseWatch | Uptime & SSL Health Engine</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        dark: {
+                            900: '#0B0F19',
+                            800: '#111827',
+                            700: '#1F2937',
+                            600: '#374151'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-dark-900 text-gray-100 min-h-screen font-sans antialiased flex flex-col">
+
+    <!-- Navbar -->
+    <header class="border-b border-dark-700 bg-dark-800/80 backdrop-blur sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="w-9 h-9 rounded-lg bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 font-bold">
+                    <i class="fa-solid fa-heart-pulse"></i>
+                </div>
+                <span class="text-xl font-bold tracking-tight text-white">PulseWatch</span>
+                <span class="text-xs px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-mono">v1.0 Engine</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+        <!-- Dashboard View -->
+        <section id="dashboard-section" class="space-y-6">
+            <!-- Top Controls -->
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-dark-800 border border-dark-700 p-6 rounded-xl">
+                <div>
+                    <h1 class="text-2xl font-bold text-white tracking-tight">Active Monitors</h1>
+                    <p class="text-sm text-gray-400 mt-0.5">Automated background ping engine with SSL telemetry</p>
+                </div>
+                <button onclick="openCreateModal()" class="inline-flex items-center px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-medium text-sm rounded-lg transition shadow-lg shadow-emerald-900/30">
+                    <i class="fa-solid fa-plus mr-2"></i> New Monitor
+                </button>
+            </div>
+
+            <!-- Monitor Cards Grid -->
+            <div id="monitors-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                <!-- Injected via JavaScript -->
+            </div>
+
+            <!-- Empty State -->
+            <div id="empty-state" class="hidden text-center py-16 bg-dark-800/50 border border-dashed border-dark-700 rounded-xl">
+                <i class="fa-solid fa-satellite-dish text-4xl text-gray-600 mb-3"></i>
+                <h3 class="text-lg font-medium text-gray-300">No monitors configured</h3>
+                <p class="text-sm text-gray-500 mt-1 mb-4">Add your first endpoint to begin health checks</p>
+                <button onclick="openCreateModal()" class="px-4 py-2 bg-dark-700 hover:bg-dark-600 text-white text-sm font-medium rounded-lg border border-dark-600 transition">
+                    Create Monitor
+                </button>
+            </div>
+        </section>
+    </main>
+
+    <!-- Create Monitor Modal -->
+    <div id="create-modal" class="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="bg-dark-800 border border-dark-700 rounded-xl max-w-lg w-full p-6 shadow-2xl relative">
+            <button onclick="closeCreateModal()" class="absolute top-4 right-4 text-gray-400 hover:text-white">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+            <h3 class="text-xl font-bold text-white mb-1">Create Health Monitor</h3>
+            <p class="text-xs text-gray-400 mb-5">Configure probing frequency and expected response</p>
+
+            <form onsubmit="handleCreateMonitor(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-gray-400 uppercase mb-1">Friendly Name</label>
+                    <input type="text" id="m-name" required placeholder="Production API" class="w-full bg-dark-900 border border-dark-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-400 uppercase mb-1">Target URL (HTTP / HTTPS)</label>
+                    <input type="url" id="m-url" required placeholder="https://api.github.com" class="w-full bg-dark-900 border border-dark-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500">
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-400 uppercase mb-1">Interval (Secs)</label>
+                        <input type="number" id="m-interval" required min="5" value="10" class="w-full bg-dark-900 border border-dark-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-400 uppercase mb-1">Expected HTTP Status</label>
+                        <input type="number" id="m-status" required value="200" class="w-full bg-dark-900 border border-dark-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-400 uppercase mb-1">Alert Webhook URL (Optional)</label>
+                    <input type="url" id="m-webhook" placeholder="https://discord.com/api/webhooks/..." class="w-full bg-dark-900 border border-dark-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500">
+                </div>
+                <div class="flex justify-end space-x-3 pt-3">
+                    <button type="button" onclick="closeCreateModal()" class="px-4 py-2 rounded-lg text-sm bg-dark-700 hover:bg-dark-600 text-gray-300">Cancel</button>
+                    <button type="submit" class="px-4 py-2 rounded-lg text-sm bg-emerald-600 hover:bg-emerald-500 text-white font-medium">Start Probing</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Metrics Modal -->
+    <div id="metrics-modal" class="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="bg-dark-800 border border-dark-700 rounded-xl max-w-3xl w-full p-6 shadow-2xl relative max-h-[90vh] flex flex-col">
+            <button onclick="closeMetricsModal()" class="absolute top-4 right-4 text-gray-400 hover:text-white">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+            <div class="mb-4">
+                <h3 id="metric-monitor-name" class="text-xl font-bold text-white">Telemetry & SLA</h3>
+                <p id="metric-monitor-url" class="text-xs text-gray-400 font-mono"></p>
+            </div>
+
+            <!-- Stats Bar -->
+            <div class="grid grid-cols-3 gap-4 mb-6">
+                <div class="bg-dark-900 border border-dark-700 p-4 rounded-lg">
+                    <span class="text-xs text-gray-400 uppercase font-semibold">24h Uptime</span>
+                    <div id="metric-uptime" class="text-2xl font-bold text-emerald-400 mt-1">--%</div>
+                </div>
+                <div class="bg-dark-900 border border-dark-700 p-4 rounded-lg">
+                    <span class="text-xs text-gray-400 uppercase font-semibold">Avg Latency</span>
+                    <div id="metric-latency" class="text-2xl font-bold text-white mt-1">-- ms</div>
+                </div>
+                <div class="bg-dark-900 border border-dark-700 p-4 rounded-lg">
+                    <span class="text-xs text-gray-400 uppercase font-semibold">SSL Expiry</span>
+                    <div id="metric-ssl" class="text-2xl font-bold text-indigo-400 mt-1">--</div>
+                </div>
+            </div>
+
+            <!-- Heartbeats Table -->
+            <h4 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Recent Heartbeats (Last 50)</h4>
+            <div class="flex-1 overflow-y-auto border border-dark-700 rounded-lg">
+                <table class="w-full text-left text-xs">
+                    <thead class="bg-dark-700/50 text-gray-400 sticky top-0">
+                        <tr>
+                            <th class="p-2.5">Time</th>
+                            <th class="p-2.5">Status</th>
+                            <th class="p-2.5">Latency</th>
+                            <th class="p-2.5">Result</th>
+                        </tr>
+                    </thead>
+                    <tbody id="heartbeats-table-body" class="divide-y divide-dark-700 font-mono">
+                        <!-- Injected via JS -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Frontend Engine Script -->
+    <script>
+        const API_BASE = '/api/v1';
+
+        document.addEventListener('DOMContentLoaded', () => {
+            loadMonitors();
+            setInterval(loadMonitors, 5000);
+        });
+
+        async function loadMonitors() {
+            try {
+                const res = await fetch(`${API_BASE}/monitors`);
+                const monitors = await res.json();
+                renderMonitors(monitors);
+            } catch (err) {
+                console.error("Failed loading monitors:", err);
+            }
+        }
+
+        function renderMonitors(monitors) {
+            const container = document.getElementById('monitors-container');
+            const empty = document.getElementById('empty-state');
+            container.innerHTML = '';
+
+            if (monitors.length === 0) {
+                empty.classList.remove('hidden');
+                return;
+            }
+            empty.classList.add('hidden');
+
+            monitors.forEach(m => {
+                const statusColor = m.status === 'UP' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
+                                    m.status === 'DOWN' ? 'bg-rose-500/10 text-rose-400 border-rose-500/20' :
+                                    'bg-yellow-500/10 text-yellow-400 border-yellow-500/20';
+
+                const card = document.createElement('div');
+                card.className = "bg-dark-800 border border-dark-700 hover:border-dark-600 rounded-xl p-5 shadow-lg transition flex flex-col justify-between";
+                card.innerHTML = `
+                    <div>
+                        <div class="flex items-center justify-between mb-3">
+                            <span class="text-xs px-2.5 py-1 rounded-full border font-mono font-medium ${statusColor}">
+                                <i class="fa-solid fa-circle text-[8px] mr-1.5"></i>${m.status}
+                            </span>
+                            <span class="text-xs text-gray-500 font-mono">${m.intervalSeconds}s interval</span>
+                        </div>
+                        <h3 class="text-lg font-bold text-white truncate">${m.name}</h3>
+                        <p class="text-xs text-gray-400 font-mono truncate mt-0.5">${m.url}</p>
+                    </div>
+                    <div class="mt-6 pt-4 border-t border-dark-700 flex items-center justify-between text-xs">
+                        <span class="text-gray-500">
+                            ${m.lastCheckedAt ? new Date(m.lastCheckedAt).toLocaleTimeString() : 'Never checked'}
+                        </span>
+                        <button onclick="viewMetrics('${m.id}', '${m.name}', '${m.url}')" class="text-emerald-400 hover:text-emerald-300 font-medium">
+                            Metrics <i class="fa-solid fa-arrow-right ml-1"></i>
+                        </button>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        async function handleCreateMonitor(e) {
+            e.preventDefault();
+            const body = {
+                name: document.getElementById('m-name').value,
+                url: document.getElementById('m-url').value,
+                intervalSeconds: parseInt(document.getElementById('m-interval').value),
+                timeoutSeconds: 5,
+                expectedStatusCode: parseInt(document.getElementById('m-status').value),
+                webhookUrl: document.getElementById('m-webhook').value || null
+            };
+
+            await fetch(`${API_BASE}/monitors`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(body)
+            });
+
+            closeCreateModal();
+            loadMonitors();
+        }
+
+        async function viewMetrics(id, name, url) {
+            document.getElementById('metric-monitor-name').textContent = name;
+            document.getElementById('metric-monitor-url').textContent = url;
+            document.getElementById('metrics-modal').classList.remove('hidden');
+
+            const res = await fetch(`${API_BASE}/monitors/${id}/metrics`);
+            const data = await res.json();
+
+            document.getElementById('metric-uptime').textContent = `${data.uptimePercentage.toFixed(1)}%`;
+            document.getElementById('metric-latency').textContent = `${data.averageLatencyMs.toFixed(0)} ms`;
+            
+            const tbody = document.getElementById('heartbeats-table-body');
+            tbody.innerHTML = '';
+
+            let latestSSL = 'N/A';
+            if (data.recentHeartbeats && data.recentHeartbeats.length > 0) {
+                const firstWithSSL = data.recentHeartbeats.find(h => h.sslDaysRemaining !== null && h.sslDaysRemaining !== undefined);
+                if (firstWithSSL) latestSSL = `${firstWithSSL.sslDaysRemaining} days`;
+
+                data.recentHeartbeats.forEach(h => {
+                    const tr = document.createElement('tr');
+                    tr.className = "hover:bg-dark-700/30";
+                    tr.innerHTML = `
+                        <td class="p-2.5 text-gray-400">${new Date(h.createdAt).toLocaleTimeString()}</td>
+                        <td class="p-2.5 text-white">${h.statusCode || 'ERR'}</td>
+                        <td class="p-2.5 text-gray-300">${h.latencyMs} ms</td>
+                        <td class="p-2.5 ${h.successful ? 'text-emerald-400' : 'text-rose-400'}">
+                            ${h.successful ? 'SUCCESS' : (h.errorMessage || 'FAILED')}
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            }
+            document.getElementById('metric-ssl').textContent = latestSSL;
+        }
+
+        function openCreateModal() { document.getElementById('create-modal').classList.remove('hidden'); }
+        function closeCreateModal() { document.getElementById('create-modal').classList.add('hidden'); }
+        function closeMetricsModal() { document.getElementById('metrics-modal').classList.add('hidden'); }
+    </script>
+</body>
+</html>

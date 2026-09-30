@@ -24,8 +24,9 @@ public interface MonitorRepository extends JpaRepository<Monitor, UUID> {
 
     @Query(value = """
         SELECT * FROM monitors
-        WHERE last_checked_at IS NULL
-           OR (last_checked_at + (interval_seconds * INTERVAL '1 second')) <= NOW()
+        WHERE enabled = TRUE
+          AND (last_checked_at IS NULL
+               OR (last_checked_at + (interval_seconds * INTERVAL '1 second')) <= NOW())
     """, nativeQuery = true)
     List<Monitor> findDueForCheck();
 }

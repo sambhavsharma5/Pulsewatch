@@ -1,5 +1,7 @@
 package com.pulsewatch.queue;
 
+import java.time.Duration;
+
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 
@@ -27,9 +29,9 @@ public class RedisQueueManager {
         }
     }
 
-    public TaskPayload pop() {
+    public TaskPayload blockingPop(Duration timeout) {
         try {
-            String json = redisTemplate.opsForList().rightPop(QUEUE_KEY);
+            String json = redisTemplate.opsForList().rightPop(QUEUE_KEY, timeout);
             if (json == null) {
                 return null;
             }

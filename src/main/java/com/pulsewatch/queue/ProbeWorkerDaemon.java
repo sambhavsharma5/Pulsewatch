@@ -1,5 +1,6 @@
 package com.pulsewatch.queue;
 
+import java.time.Duration;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -21,7 +22,7 @@ public class ProbeWorkerDaemon {
     private final RedisQueueManager queueManager;
     private final NetworkProbeEngine probeEngine;
     private final IncidentEvaluator incidentEvaluator;
-    
+
     // Concurrency pool using Java 21 Virtual Threads
     private final ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor();
 
@@ -37,7 +38,9 @@ public class ProbeWorkerDaemon {
     private void processQueueLoop() {
         while (!Thread.currentThread().isInterrupted()) {
             try {
-                TaskPayload task = queueManager.pop();
+                // Blocking pop eliminates busy-waiting and starts tasks with zero
+                // latency the moment they are pushed.
+                TaskPayload task = queueManager.blockingPop(Duration.ofSeconds(10));
                 if (task != null) {
                     executor.submit(() -> {
                         ProbeResult res = probeEngine.execute(
@@ -47,21 +50,9 @@ public class ProbeWorkerDaemon {
                         );
                         incidentEvaluator.evaluate(task.monitorId(), res);
                     });
-                } else {
-                    // Queue is empty: sleep 1 second without consuming OS threads
-                    Thread.sleep(1000);
                 }
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                break;
             } catch (Exception e) {
                 log.error("Worker processing loop error: {}", e.getMessage());
-                try {
-                    Thread.sleep(1000);
-                } catch (InterruptedException ie) {
-                    Thread.currentThread().interrupt();
-                    break;
-                }
             }
         }
     }

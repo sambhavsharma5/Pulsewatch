@@ -78,7 +78,7 @@
             <button onclick="closeCreateModal()" class="absolute top-4 right-4 text-gray-400 hover:text-white">
                 <i class="fa-solid fa-xmark text-lg"></i>
             </button>
-            <h3 class="text-xl font-bold text-white mb-1">Create Health Monitor</h3>
+            <h3 id="create-modal-title" class="text-xl font-bold text-white mb-1">Create Health Monitor</h3>
             <p class="text-xs text-gray-400 mb-5">Configure probing frequency and expected response</p>
 
             <form onsubmit="handleCreateMonitor(event)" class="space-y-4">
@@ -190,9 +190,12 @@
             empty.classList.add('hidden');
 
             monitors.forEach(m => {
-                const statusColor = m.status === 'UP' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
+                const paused = m.enabled === false;
+                const statusColor = paused ? 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20' :
+                                    m.status === 'UP' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
                                     m.status === 'DOWN' ? 'bg-rose-500/10 text-rose-400 border-rose-500/20' :
                                     'bg-yellow-500/10 text-yellow-400 border-yellow-500/20';
+                const statusLabel = paused ? 'PAUSED' : m.status;
 
                 const card = document.createElement('div');
                 card.className = "bg-dark-800 border border-dark-700 hover:border-dark-600 rounded-xl p-5 shadow-lg transition flex flex-col justify-between";
@@ -200,7 +203,7 @@
                     <div>
                         <div class="flex items-center justify-between mb-3">
                             <span class="text-xs px-2.5 py-1 rounded-full border font-mono font-medium ${statusColor}">
-                                <i class="fa-solid fa-circle text-[8px] mr-1.5"></i>${m.status}
+                                <i class="fa-solid fa-circle text-[8px] mr-1.5"></i>${statusLabel}
                             </span>
                             <span class="text-xs text-gray-500 font-mono">${m.intervalSeconds}s interval</span>
                         </div>
@@ -215,10 +218,23 @@
                             Metrics <i class="fa-solid fa-arrow-right ml-1"></i>
                         </button>
                     </div>
+                    <div class="mt-3 grid grid-cols-3 gap-2 text-xs">
+                        <button onclick="toggleMonitor('${m.id}', ${paused})" class="px-2 py-1.5 rounded-md border border-dark-600 bg-dark-700 hover:bg-dark-600 text-gray-300 transition">
+                            <i class="fa-solid ${paused ? 'fa-play' : 'fa-pause'} mr-1"></i>${paused ? 'Resume' : 'Pause'}
+                        </button>
+                        <button onclick="openEditModal('${m.id}', '${m.name}', '${m.url}', ${m.intervalSeconds}, ${m.expectedStatusCode}, '${m.webhookUrl || ''}')" class="px-2 py-1.5 rounded-md border border-dark-600 bg-dark-700 hover:bg-dark-600 text-gray-300 transition">
+                            <i class="fa-solid fa-pen mr-1"></i>Edit
+                        </button>
+                        <button onclick="deleteMonitor('${m.id}')" class="px-2 py-1.5 rounded-md border border-rose-500/30 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 transition">
+                            <i class="fa-solid fa-trash mr-1"></i>Delete
+                        </button>
+                    </div>
                 `;
                 container.appendChild(card);
             });
         }
+
+        let editingId = null;
 
         async function handleCreateMonitor(e) {
             e.preventDefault();
@@ -231,8 +247,10 @@
                 webhookUrl: document.getElementById('m-webhook').value || null
             };
 
-            await fetch(`${API_BASE}/monitors`, {
-                method: 'POST',
+            const url = editingId ? `${API_BASE}/monitors/${editingId}` : `${API_BASE}/monitors`;
+            const method = editingId ? 'PATCH' : 'POST';
+            await fetch(url, {
+                method,
                 headers: {
                     'Content-Type': 'application/json'
                 },
@@ -240,6 +258,23 @@
             });
 
             closeCreateModal();
+            loadMonitors();
+        }
+
+        async function toggleMonitor(id, enabled) {
+            await fetch(`${API_BASE}/monitors/${id}`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ enabled })
+            });
+            loadMonitors();
+        }
+
+        async function deleteMonitor(id) {
+            if (!confirm('Delete this monitor and all of its check history?')) return;
+            await fetch(`${API_BASE}/monitors/${id}`, { method: 'DELETE' });
             loadMonitors();
         }
 
@@ -279,8 +314,33 @@
             document.getElementById('metric-ssl').textContent = latestSSL;
         }
 
-        function openCreateModal() { document.getElementById('create-modal').classList.remove('hidden'); }
-        function closeCreateModal() { document.getElementById('create-modal').classList.add('hidden'); }
+        function openCreateModal() {
+            if (editingId === null) {
+                document.getElementById('create-modal-title').textContent = 'Create Health Monitor';
+                document.getElementById('m-name').value = '';
+                document.getElementById('m-url').value = '';
+                document.getElementById('m-interval').value = '10';
+                document.getElementById('m-status').value = '200';
+                document.getElementById('m-webhook').value = '';
+            }
+            document.getElementById('create-modal').classList.remove('hidden');
+        }
+
+        function openEditModal(id, name, url, intervalSeconds, expectedStatusCode, webhookUrl) {
+            editingId = id;
+            document.getElementById('create-modal-title').textContent = 'Edit Health Monitor';
+            document.getElementById('m-name').value = name;
+            document.getElementById('m-url').value = url;
+            document.getElementById('m-interval').value = intervalSeconds;
+            document.getElementById('m-status').value = expectedStatusCode;
+            document.getElementById('m-webhook').value = webhookUrl || '';
+            document.getElementById('create-modal').classList.remove('hidden');
+        }
+
+        function closeCreateModal() {
+            document.getElementById('create-modal').classList.add('hidden');
+            editingId = null;
+        }
         function closeMetricsModal() { document.getElementById('metrics-modal').classList.add('hidden'); }
     </script>
 </body>

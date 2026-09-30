@@ -54,6 +54,10 @@ public class Monitor {
     @Column(name = "consecutive_failures", nullable = false)
     private int consecutiveFailures;
 
+    @Builder.Default
+    @Column(nullable = false)
+    private boolean enabled = true;
+
     @Column(name = "last_checked_at")
     private Instant lastCheckedAt;
 

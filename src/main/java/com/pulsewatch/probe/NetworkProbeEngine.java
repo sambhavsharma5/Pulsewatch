@@ -17,7 +17,18 @@ import org.springframework.stereotype.Component;
 @Component
 public class NetworkProbeEngine {
 
+    private final SsrfGuard ssrfGuard;
+
+    public NetworkProbeEngine(SsrfGuard ssrfGuard) {
+        this.ssrfGuard = ssrfGuard;
+    }
+
     public ProbeResult execute(String targetUrl, int timeoutSeconds, int expectedStatusCode) {
+        try {
+            ssrfGuard.assertSafeUrl(targetUrl);
+        } catch (IllegalArgumentException e) {
+            return new ProbeResult(null, 0, false, null, "SSRF guard blocked request: " + e.getMessage());
+        }
         CertificateCapturingTrustManager capturingTrustManager = new CertificateCapturingTrustManager();
         
         HttpClient client;

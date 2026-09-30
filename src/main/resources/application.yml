@@ -9,9 +9,9 @@ spring:
       enabled: true # Activates Java 21 Virtual Threads for all Web & Async executions
 
   datasource:
-    url: jdbc:postgresql://localhost:5432/pulsewatch_db
-    username: pulsewatch
-    password: secretpassword
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/pulsewatch_db}
+    username: ${SPRING_DATASOURCE_USERNAME:pulsewatch}
+    password: ${SPRING_DATASOURCE_PASSWORD:secretpassword}
     driver-class-name: org.postgresql.Driver
     hikari:
       maximum-pool-size: 25
@@ -35,6 +35,8 @@ spring:
 
   data:
     redis:
-      host: localhost
-      port: 6379
-      timeout: 10000ms
+      host: ${SPRING_DATA_REDIS_HOST:localhost}
+      port: ${SPRING_DATA_REDIS_PORT:6379}
+      # Must stay comfortably above the 10s blocking BRPOP so the client never
+      # kills a legitimate wait (see the earlier "Redis command timed out" race).
+      timeout: 20000ms
